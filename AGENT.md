@@ -32,7 +32,7 @@ and double-buffered differential rendering, plus a built-in wcwidth system.
 Windows side (Git Bash; cargo is not on the default PATH):
 
 ```bash
-export PATH="/c/Users/Ash/.cargo/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
 cargo test                              # 107 tests must be green
 cargo clippy --all-targets              # 0 warnings is the bar
 cargo check --target x86_64-unknown-linux-gnu --all-targets   # required after touching sys/unix.rs
