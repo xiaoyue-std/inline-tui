@@ -1,0 +1,11 @@
+[package]
+name = "cctui"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+description = "A general-purpose inline TUI widget library built from scratch — zero dependencies."
+license = "MIT"
+keywords = ["tui", "terminal", "widgets", "inline", "cli"]
+categories = ["command-line-interface", "gui"]
+
+[dependencies]

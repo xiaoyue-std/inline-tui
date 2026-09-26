@@ -1,0 +1,4 @@
+# Normalize line endings: LF in the repo everywhere (shell scripts must stay LF for WSL)
+* text=auto eol=lf
+*.png binary
+*.ico binary

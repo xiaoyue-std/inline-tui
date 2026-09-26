@@ -1,0 +1,15 @@
+# Build artifacts
+/target
+__pycache__/
+
+# Editor / OS noise
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+
+# Session artifacts
+.zcode/
+
+# Local verification artifacts
+*.log
