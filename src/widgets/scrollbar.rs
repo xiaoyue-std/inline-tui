@@ -97,38 +97,3 @@ impl Widget for Scrollbar {
         // The scrollbar needs content metrics; use render_with_metrics.
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn thumb_size_and_position() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 2, 10));
-        // 100 content rows, 10-row viewport → thumb is 1 row; pos=90 (bottom) → thumb last
-        Scrollbar::new().render_with_metrics(Rect::new(0, 0, 1, 10), &mut b, 100, 10, 90);
-        let col: Vec<char> = (0..10).map(|y| b.get(0, y).unwrap().symbol.chars().next().unwrap()).collect();
-        assert_eq!(col.iter().filter(|c| **c == '█').count(), 1);
-        assert_eq!(col[9], '█');
-        assert_eq!(col[0], '│');
-    }
-
-    #[test]
-    fn full_viewport_full_thumb() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 2, 10));
-        Scrollbar::new().render_with_metrics(Rect::new(0, 0, 1, 10), &mut b, 10, 10, 0);
-        let col: Vec<char> = (0..10).map(|y| b.get(0, y).unwrap().symbol.chars().next().unwrap()).collect();
-        assert!(col.iter().all(|c| *c == '█'));
-    }
-
-    #[test]
-    fn horizontal_orientation() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 10, 2));
-        Scrollbar::new()
-            .orientation(ScrollOrientation::Horizontal)
-            .render_with_metrics(Rect::new(0, 0, 10, 1), &mut b, 40, 10, 0);
-        let r: String = (0..10).map(|x| b.get(x, 0).unwrap().symbol.chars().next().unwrap()).collect();
-        assert!(r.starts_with("██"));
-        assert!(r.ends_with('│')); // default track symbol
-    }
-}

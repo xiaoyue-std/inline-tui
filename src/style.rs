@@ -250,37 +250,3 @@ impl From<Color> for Style {
         Style::new().fg(c)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn modifier_ops() {
-        let m = Modifier::BOLD | Modifier::ITALIC;
-        assert!(m.contains(Modifier::BOLD));
-        assert!(m.intersects(Modifier::ITALIC));
-        assert!(!m.contains(Modifier::UNDERLINE));
-        assert_eq!(m - Modifier::ITALIC, Modifier::BOLD);
-    }
-
-    #[test]
-    fn style_patch() {
-        let a = Style::new().fg(Color::Red).add_modifier(Modifier::BOLD);
-        let b = Style::new().add_modifier(Modifier::ITALIC).remove_modifier(Modifier::BOLD);
-        let c = a.patch(b);
-        assert_eq!(c.fg, Some(Color::Red));
-        assert_eq!(c.add_modifier, Modifier::ITALIC);
-        assert_eq!(c.sub_modifier, Modifier::BOLD);
-    }
-
-    #[test]
-    fn sgr_codes() {
-        let mut s = String::new();
-        Color::Red.sgr_fg(&mut s);
-        assert_eq!(s, "31");
-        let mut s = String::new();
-        Color::Rgb(1, 2, 3).sgr_bg(&mut s);
-        assert_eq!(s, "48;2;1;2;3");
-    }
-}

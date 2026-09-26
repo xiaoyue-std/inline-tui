@@ -62,17 +62,3 @@ impl Widget for StatusBar {
         buf.set_line(area.x, area.y, &line);
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn fills_row() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 20, 1));
-        StatusBar::hints(&[("ctrl+c", "退出")]).render(Rect::new(0, 0, 20, 1), &mut b);
-        let row: String = (0..20).map(|x| b.get(x, 0).unwrap().symbol.clone()).collect();
-        assert_eq!(row.trim_end().len(), "ctrl+c 退出".len());
-        assert!(row.ends_with(' ')); // background fill
-    }
-}

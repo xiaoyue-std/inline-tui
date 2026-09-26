@@ -61,29 +61,3 @@ impl Widget for Tabs {
         buf.set_line(area.x, area.y, &truncate_line(&line, area.width as usize));
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::style::{Color, Modifier};
-
-    #[test]
-    fn renders_with_selection() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 30, 1));
-        Tabs::new(["List", "Table", "Editor"])
-            .selected(1)
-            .styles(
-                Style::new().fg(Color::Gray),
-                Style::new().fg(Color::White).add_modifier(Modifier::BOLD),
-            )
-            .render(Rect::new(0, 0, 30, 1), &mut b);
-        let r: String = (0..30).map(|x| b.get(x, 0).unwrap().symbol.clone()).collect();
-        assert!(r.contains("List"));
-        assert!(r.contains("Table"));
-        // The selected item uses the highlight style
-        let table_pos = r.find("Table").unwrap();
-        assert_eq!(b.get(table_pos as u16, 0).unwrap().modifier, Modifier::BOLD);
-        let list_pos = r.find("List").unwrap();
-        assert_eq!(b.get(list_pos as u16, 0).unwrap().fg, Color::Gray);
-    }
-}

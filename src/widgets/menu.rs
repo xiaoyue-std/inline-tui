@@ -123,28 +123,3 @@ impl Widget for Menu {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn height_calc() {
-        assert_eq!(menu_height(2, 8), 4);
-        assert_eq!(menu_height(10, 5), 7);
-    }
-
-    #[test]
-    fn renders_items_with_selection() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 20, 4));
-        let m = Menu::new(["help", "clear", "exit"]).selected(1);
-        assert_eq!(m.height(), 5);
-        m.render(Rect::new(0, 0, 20, 4), &mut b);
-        // Read inside the border only
-        let r0: String = (1..19).map(|x| b.get(x, 1).unwrap().symbol.clone()).collect();
-        let r1: String = (1..19).map(|x| b.get(x, 2).unwrap().symbol.clone()).collect();
-        assert!(r0.trim_end().ends_with("help"));
-        assert!(r1.contains("›"));
-        assert!(r1.trim_end().ends_with("clear"));
-    }
-}

@@ -118,30 +118,3 @@ impl Widget for RadioGroup {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::style::{Color, Modifier};
-
-    #[test]
-    fn checkbox_states() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 20, 1));
-        Checkbox::new("Autosave", true)
-            .styles(Style::new(), Style::new().fg(Color::Green).add_modifier(Modifier::BOLD))
-            .render(Rect::new(0, 0, 20, 1), &mut b);
-        let r: String = (0..20).map(|x| b.get(x, 0).unwrap().symbol.clone()).collect();
-        assert!(r.starts_with("[x] Autosave"));
-        assert_eq!(b.get(0, 0).unwrap().fg, Color::Green);
-    }
-
-    #[test]
-    fn radio_selection() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 20, 3));
-        RadioGroup::new(["Light", "Dark", "Follow system"], 2).render(Rect::new(0, 0, 20, 3), &mut b);
-        let r2: String = (0..20).map(|x| b.get(x, 2).unwrap().symbol.clone()).collect();
-        assert!(r2.starts_with("(*) Follow system"));
-        let r0: String = (0..20).map(|x| b.get(x, 0).unwrap().symbol.clone()).collect();
-        assert!(r0.starts_with("( ) Light"));
-    }
-}

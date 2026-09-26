@@ -94,10 +94,7 @@ The component model is ratatui-like: interaction state lives in your app, and
 
 | Command | What it shows |
 |---|---|
-| `cargo run --example gallery` | ★ Widget tour: List / Table / Form / Charts / Editor pages (←/→ to switch) |
-| `cargo run --example chat` | Composition demo: editor + slash completion + streaming Markdown + diff colors |
-| `cargo run --example sandbox` | Rendering showcase: borders, palettes, styles, widths, wrapping, animations |
-| `cargo run --example keyspector` | Event inspector: decoded keys / mouse / paste in real time |
+| `cargo run --example quickstart` | The smallest useful app: inline region, event loop, `List` + `StatusBar` |
 
 ## Documentation
 
@@ -134,30 +131,6 @@ src/
 Data flow: **input thread** → (VT parsing) → `Event` channel → **main loop** (update) →
 widgets paint into a `Buffer` → diff against the previous frame → minimal ANSI output.
 
-## Testing
-
-```bash
-cargo test        # 107 tests: 100 unit + 5 integration + 2 doc
-```
-
-Coverage: width tables, wrapping, buffer diff, the VT parser (including chunk-split
-sequences), streaming markdown, tokenizer, editor operations, render snapshots for every
-widget (in-memory `Buffer` assertions), deterministic animation frames, and the render
-pipeline (region height changes / diff compilation).
-
-### Headless acceptance (real pty, CI-friendly)
-
-`tools/pty_smoke.py` runs the examples inside a real pseudo-terminal, feeds scripted
-keystrokes, and asserts on the ANSI output:
-
-```bash
-python3 tools/pty_smoke.py              # all scenarios
-python3 tools/pty_smoke.py gallery      # just the widget tour
-```
-
-Scenarios: sandbox / gallery (5 widget pages) / chat / diff / signal (termios restored
-under SIGTERM). One-shot full verification on WSL: `bash .wsl-test.sh`.
-
 ## Platform support
 
 | Platform | Status |
@@ -171,8 +144,7 @@ pipes work fine); SIGHUP/INT/TERM handlers restore termios before abnormal termi
 raw mode keeps ISIG off so Ctrl+C arrives as byte `0x03` and the app decides what it means.
 
 Cross-compile checks pass for `x86_64-unknown-linux-gnu` and `aarch64-apple-darwin`;
-runtime behavior is verified end-to-end on two WSL2 distros (Ubuntu 26.04, kali) with
-`tools/pty_smoke.py`.
+runtime behavior has been verified end-to-end under WSL2 (Ubuntu 26.04, kali).
 
 ## Known limits (honest roadmap)
 

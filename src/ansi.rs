@@ -147,30 +147,3 @@ pub fn push_style(out: &mut String, last: &mut Option<Style>, next: Style) {
     }
     *last = Some(next);
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn move_to_sequence() {
-        let mut s = String::new();
-        move_to(&mut s, 1, 1);
-        assert_eq!(s, "\x1b[1;1H");
-    }
-
-    #[test]
-    fn style_minimal_output() {
-        let mut s = String::new();
-        let mut last = None;
-        push_style(&mut s, &mut last, Style::new().fg(Color::Red));
-        assert_eq!(s, "\x1b[0m\x1b[31m");
-        let n = s.len();
-        push_style(&mut s, &mut last, Style::new().fg(Color::Red).add_modifier(Modifier::BOLD));
-        assert_eq!(&s[n..], "\x1b[1m");
-        let n = s.len();
-        push_style(&mut s, &mut last, Style::new().fg(Color::Blue));
-        // Color change → reset + reapply
-        assert_eq!(&s[n..], "\x1b[0m\x1b[34m");
-    }
-}

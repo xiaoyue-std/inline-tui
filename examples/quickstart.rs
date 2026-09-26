@@ -23,7 +23,7 @@ fn main() -> stilt::Result<()> {
 
     // 3. Your application state lives OUTSIDE the widgets (ratatui-style):
     //    widgets borrow it for rendering, you own every mutation.
-    let items = vec![
+    let items = [
         "write the render core",
         "add the widget set",
         "publish to crates.io",

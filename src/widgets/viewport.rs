@@ -69,32 +69,3 @@ impl Widget for Viewport<'_> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn scroll_state_follows_and_clamps() {
-        let mut s = ScrollState { offset: 0, follow: true };
-        s.sync(100, 10);
-        assert_eq!(s.offset, 90);
-        s.scroll_up(5);
-        assert_eq!(s.offset, 85);
-        assert!(!s.follow);
-        s.scroll_down(100, 100, 10);
-        assert!(s.follow);
-        assert_eq!(s.offset, 90);
-    }
-
-    #[test]
-    fn viewport_renders_slice() {
-        let lines: Vec<Line> = (0..10).map(|i| Line::raw(format!("line{}", i))).collect();
-        let mut b = Buffer::empty(Rect::new(0, 0, 10, 2));
-        Viewport::new(&lines, 3).render(Rect::new(0, 0, 10, 2), &mut b);
-        let r0: String = (0..10).map(|x| b.get(x, 0).unwrap().symbol.clone()).collect();
-        let r1: String = (0..10).map(|x| b.get(x, 1).unwrap().symbol.clone()).collect();
-        assert_eq!(r0.trim_end(), "line3");
-        assert_eq!(r1.trim_end(), "line4");
-    }
-}

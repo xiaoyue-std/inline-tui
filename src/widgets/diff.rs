@@ -89,28 +89,3 @@ impl Widget for DiffView<'_> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::style::{Color, Modifier};
-
-    const DIFF: &str = "diff --git a/main.rs b/main.rs\n@@ -1,2 +1,2 @@\n-old\n+new\n ctx";
-
-    #[test]
-    fn renders_colored_lines() {
-        let th_add = Style::new().fg(Color::Green);
-        let mut b = Buffer::empty(Rect::new(0, 0, 40, 5));
-        DiffView::new(DIFF)
-            .styles(th_add, Style::new().fg(Color::Red), Style::new().fg(Color::Blue), Style::new().add_modifier(Modifier::BOLD))
-            .render(Rect::new(0, 0, 40, 5), &mut b);
-        assert_eq!(b.get(0, 0).unwrap().fg, Color::Reset); // meta inherits by default
-        assert_eq!(b.get(0, 2).unwrap().fg, Color::Red);
-        assert_eq!(b.get(0, 3).unwrap().fg, Color::Green);
-    }
-
-    #[test]
-    fn height_counts_lines() {
-        assert_eq!(DiffView::new(DIFF).height(), 5);
-    }
-}

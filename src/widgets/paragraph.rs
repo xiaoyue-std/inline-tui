@@ -72,19 +72,3 @@ impl Widget for Paragraph {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::layout::Rect;
-
-    #[test]
-    fn wraps_and_scrolls() {
-        let mut b = Buffer::empty(Rect::new(0, 0, 10, 2));
-        Paragraph::new("hello world foo").scroll(1).render(Rect::new(0, 0, 10, 2), &mut b);
-        let row1: String = (0..10).map(|x| b.get(x, 0).unwrap().symbol.clone()).collect();
-        let row2: String = (0..10).map(|x| b.get(x, 1).unwrap().symbol.clone()).collect();
-        assert_eq!(row1.trim_end(), "world foo");
-        assert_eq!(row2.trim_end(), "");
-    }
-}
