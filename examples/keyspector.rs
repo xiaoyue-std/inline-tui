@@ -3,20 +3,20 @@
 //! Run `cargo run --example keyspector` and press any key to see the parsed events;
 //! q / Esc / Ctrl+C to quit.
 
-use cctui::event::{Event, KeyCode, KeyModifiers};
-use cctui::layout;
-use cctui::style::{Color, Style};
-use cctui::text::Line;
-use cctui::widgets::{Block, StatusBar, Viewport, Widget};
-use cctui::Terminal;
+use stilt::event::{Event, KeyCode, KeyModifiers};
+use stilt::layout;
+use stilt::style::{Color, Style};
+use stilt::text::Line;
+use stilt::widgets::{Block, StatusBar, Viewport, Widget};
+use stilt::Terminal;
 use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
-fn main() -> cctui::Result<()> {
+fn main() -> stilt::Result<()> {
     let mut term = Terminal::inline(16)?;
     term.enable_mouse().enable_paste();
 
-    let rx = cctui::app::spawn_input_thread();
+    let rx = stilt::app::spawn_input_thread();
     let mut log: Vec<String> = Vec::new();
 
     loop {

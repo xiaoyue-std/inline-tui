@@ -5,7 +5,7 @@ the context and hard rules they need. Read it before changing any code.
 
 ## What this project is
 
-**cctui**: a general-purpose Rust TUI **widget library** (component model in the spirit of
+**stilt**: a general-purpose Rust TUI **widget library** (component model in the spirit of
 ratatui/FTXUI, zero dependencies). It is not a chat app and not a clone of any specific
 product — `examples/chat.rs` is merely a composition demo. Signature features: inline
 rendering (the UI occupies the bottom rows of the terminal while scrollback stays intact)

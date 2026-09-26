@@ -1,4 +1,4 @@
-//! gallery: overview of cctui widgets (flagship example).
+//! gallery: overview of stilt widgets (flagship example).
 //!
 //! Run `cargo run --example gallery` and switch pages with ←/→ or Tab:
 //! - **List**   list + scrollbar (↑↓ to select)
@@ -9,19 +9,19 @@
 //!
 //! q / Esc / Ctrl+C to quit.
 
-use cctui::buffer::Buffer;
-use cctui::event::{Event, KeyCode, KeyEvent};
-use cctui::layout::{vsplit, Constraint, Rect};
-use cctui::style::{Color, Modifier, Style};
-use cctui::text::Line;
-use cctui::theme::Theme;
-use cctui::widgets::anim::{ProgressBar, Shimmer, Wave};
-use cctui::widgets::sparkline::Sparkline;
-use cctui::widgets::{
+use stilt::buffer::Buffer;
+use stilt::event::{Event, KeyCode, KeyEvent};
+use stilt::layout::{vsplit, Constraint, Rect};
+use stilt::style::{Color, Modifier, Style};
+use stilt::text::Line;
+use stilt::theme::Theme;
+use stilt::widgets::anim::{ProgressBar, Shimmer, Wave};
+use stilt::widgets::sparkline::Sparkline;
+use stilt::widgets::{
     Block, Checkbox, Editor, List, ListState, RadioGroup, Scrollbar, StatusBar, Table, TableState,
     Tabs, Widget,
 };
-use cctui::Terminal;
+use stilt::Terminal;
 use std::sync::mpsc::RecvTimeoutError;
 use std::time::{Duration, Instant};
 
@@ -30,10 +30,10 @@ const LIST_ITEMS: [&str; 9] = [
     "Rust", "C", "C++", "Python", "TypeScript", "Go", "Java", "Zig", "Haskell",
 ];
 
-fn main() -> cctui::Result<()> {
+fn main() -> stilt::Result<()> {
     let mut term = Terminal::inline(24)?;
     term.enable_mouse().enable_paste();
-    let rx = cctui::app::spawn_input_thread();
+    let rx = stilt::app::spawn_input_thread();
     let theme = Theme::default();
     let accent = Style::new().fg(Color::Rgb(215, 119, 87));
     let accent_bold = accent.add_modifier(Modifier::BOLD);
@@ -131,7 +131,7 @@ fn main() -> cctui::Result<()> {
                 StatusBar::hint_spans(hints, theme.status_hint_key, theme.status_hint, theme.dim);
             spans.insert(
                 0,
-                cctui::text::Span::styled(format!("{} / {}   ", page + 1, PAGES.len()), accent_bold),
+                stilt::text::Span::styled(format!("{} / {}   ", page + 1, PAGES.len()), accent_bold),
             );
             StatusBar::new(spans).render(rows[2], frame.buffer);
         })?;
@@ -250,7 +250,7 @@ fn render_charts_page(buf: &mut Buffer, area: Rect, t: Duration, accent: Style) 
     Wave::new("✦ Animation widgets: Wave · Shimmer · ProgressBar · Sparkline")
         .at(t)
         .render(Rect::new(area.x, area.y + 9, area.width, 1), buf);
-    Shimmer::new("shimmer loading placeholder effect — cctui anim")
+    Shimmer::new("shimmer loading placeholder effect — stilt anim")
         .at(t)
         .render(Rect::new(area.x, area.y + 11, area.width, 1), buf);
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PTY smoke test driver: runs the cctui examples in a headless Linux environment (CI / WSL).
+"""PTY smoke test driver: runs the stilt examples in a headless Linux environment (CI / WSL).
 
 Allocates a real pty (with window size), feeds scripted key sequences, captures all
 ANSI output, and asserts on the rendered result. Usage:

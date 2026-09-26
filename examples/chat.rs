@@ -1,9 +1,9 @@
-//! chat: widget assembly demo — builds a messaging app from cctui's standard widgets.
+//! chat: widget assembly demo — builds a messaging app from stilt's standard widgets.
 //!
 //! Run `cargo run --example chat`.
 //!
 //! Widget combinations demonstrated:
-//! - [`Viewport`] (follow-bottom scrolling) + [`markdown`](cctui::markdown) rendered
+//! - [`Viewport`] (follow-bottom scrolling) + [`markdown`](stilt::markdown) rendered
 //!   message stream
 //! - [`Editor`] multi-line editor + slash command completion menu (opened with `/`)
 //! - [`diff_lines`] colored rendering, status bar, animated spinner/loading dots
@@ -12,16 +12,16 @@
 //! streaming reply.
 //! `Ctrl+C` clears the input; press again to quit.
 
-use cctui::event::{Event, KeyCode, MouseEventKind};
-use cctui::layout::{vsplit, Constraint};
-use cctui::markdown;
-use cctui::style::{Color, Modifier, Style};
-use cctui::text::{wrap_line, Line, Span};
-use cctui::theme::Theme;
-use cctui::widgets::diff::diff_lines;
-use cctui::widgets::spinner::STARS;
-use cctui::widgets::{Editor, InputAction, Menu, ScrollState, StatusBar, Viewport, Widget};
-use cctui::Terminal;
+use stilt::event::{Event, KeyCode, MouseEventKind};
+use stilt::layout::{vsplit, Constraint};
+use stilt::markdown;
+use stilt::style::{Color, Modifier, Style};
+use stilt::text::{wrap_line, Line, Span};
+use stilt::theme::Theme;
+use stilt::widgets::diff::diff_lines;
+use stilt::widgets::spinner::STARS;
+use stilt::widgets::{Editor, InputAction, Menu, ScrollState, StatusBar, Viewport, Widget};
+use stilt::Terminal;
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::Duration;
 
@@ -36,21 +36,21 @@ enum StreamMsg {
     Done,
 }
 
-const WELCOME: &str = "Welcome to **chat** — a demo app assembled from `cctui` widgets ✻\n\nTry these:\n- Type `/` to open the command menu (↑↓ to select, Enter or Tab to accept)\n- Say anything and you'll get a **streaming** Markdown reply\n- `/diff` to see diff coloring · `/help` for shortcuts · `Ctrl+C` to quit";
+const WELCOME: &str = "Welcome to **chat** — a demo app assembled from `stilt` widgets ✻\n\nTry these:\n- Type `/` to open the command menu (↑↓ to select, Enter or Tab to accept)\n- Say anything and you'll get a **streaming** Markdown reply\n- `/diff` to see diff coloring · `/help` for shortcuts · `Ctrl+C` to quit";
 
-const REPLY_CODE: &str = "The core idea of `cctui`'s diff rendering:\n\n1. Each frame, widgets are drawn into a `Buffer` (character grid)\n2. Compare cell-by-cell with the previous frame and emit only the **changed** cells\n3. Consecutive runs with the same style are merged into one cursor move + one color set\n\n```rust\n// The key to no flicker: only write the changed cells\nfor (x, y, cell) in prev.diff(&next) {\n    move_cursor(x, y);\n    emit_sgr(cell.style);\n    print(cell.symbol);\n}\n```\n\nThe whole thing is only a handful of syscalls per frame, so streaming refreshes never flicker ✻";
+const REPLY_CODE: &str = "The core idea of `stilt`'s diff rendering:\n\n1. Each frame, widgets are drawn into a `Buffer` (character grid)\n2. Compare cell-by-cell with the previous frame and emit only the **changed** cells\n3. Consecutive runs with the same style are merged into one cursor move + one color set\n\n```rust\n// The key to no flicker: only write the changed cells\nfor (x, y, cell) in prev.diff(&next) {\n    move_cursor(x, y);\n    emit_sgr(cell.style);\n    print(cell.symbol);\n}\n```\n\nThe whole thing is only a handful of syscalls per frame, so streaming refreshes never flicker ✻";
 
 const REPLY_INLINE: &str = "> The essence of terminal UIs: **restraint**.\n\nIn inline mode the UI occupies only a few lines at the bottom of the terminal, while the scrollback history above is preserved — the most fundamental difference from fullscreen TUIs like vim.\n\nImplementation notes: the region is anchored to the bottom (CUP absolute addressing), a height change triggers a full redraw, and wide characters occupy two cells according to the wcwidth table.";
 
 const HELP: &str = "## Available commands\n\n- `/help` — show this help\n- `/diff` — display a unified diff rendering\n- `/clear` — clear messages\n- `/exit` — quit\n\n### Shortcuts\n\n- `Ctrl+C` — clear the input; press again to quit\n- `Alt+Enter` — insert a newline\n- `↑ / ↓` — browse submitted history (single-line state)\n- `PgUp / PgDn` or mouse wheel — scroll history\n- Type `/` — open the command menu";
 
-const SAMPLE_DIFF: &str = "diff --git a/src/main.rs b/src/main.rs\nindex 3a4b2c1..d5e6f7a 100644\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1,5 +1,7 @@\n fn main() {\n-    println!(\"Hello, world!\");\n+    let name = \"cctui\";\n+    // Light up the terminal with diff rendering\n+    println!(\"Hello, {}!\", name);\n }";
+const SAMPLE_DIFF: &str = "diff --git a/src/main.rs b/src/main.rs\nindex 3a4b2c1..d5e6f7a 100644\n--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1,5 +1,7 @@\n fn main() {\n-    println!(\"Hello, world!\");\n+    let name = \"stilt\";\n+    // Light up the terminal with diff rendering\n+    println!(\"Hello, {}!\", name);\n }";
 
-fn main() -> cctui::Result<()> {
+fn main() -> stilt::Result<()> {
     let mut term = Terminal::inline(24)?;
     term.enable_mouse().enable_paste();
 
-    let rx = cctui::app::spawn_input_thread();
+    let rx = stilt::app::spawn_input_thread();
     let (stx, srx) = mpsc::channel::<StreamMsg>();
 
     let theme = Theme::default();
@@ -61,7 +61,7 @@ fn main() -> cctui::Result<()> {
         .with_completions(commands.iter().map(|s| s.to_string()).collect())
         .with_placeholder("Type a message… ('/' commands · Alt+Enter newline · Ctrl+C quit)")
         .with_block(
-            cctui::widgets::Block::rounded()
+            stilt::widgets::Block::rounded()
                 .border_style(theme.border_focused)
                 .title(Line::styled(" ✻ chat ", accent)),
         )
@@ -112,7 +112,7 @@ fn main() -> cctui::Result<()> {
                             "exit" => exit = true,
                             "help" => msgs.push(Msg::Assistant(HELP.to_string())),
                             "diff" => {
-                                msgs.push(Msg::Assistant("Here is `cctui`'s diff rendering:".to_string()));
+                                msgs.push(Msg::Assistant("Here is `stilt`'s diff rendering:".to_string()));
                                 msgs.push(Msg::Diff(SAMPLE_DIFF.to_string()));
                             }
                             other => {

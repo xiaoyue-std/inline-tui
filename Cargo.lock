@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "cctui"
+name = "stilt"
 version = "0.1.0"

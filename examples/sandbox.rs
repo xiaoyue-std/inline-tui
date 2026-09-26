@@ -3,26 +3,26 @@
 //!
 //! Run `cargo run --example sandbox`; q / Esc / Ctrl+C to quit.
 
-use cctui::layout::{vsplit, Constraint, Rect};
-use cctui::style::{Color, Modifier, Style};
-use cctui::text::{Line, Text};
-use cctui::widgets::anim::{LoadingDots, ProgressBar, Shimmer, Ticker, Wave};
-use cctui::widgets::{Block, BorderType, Paragraph, Spinner, StatusBar, Widget};
-use cctui::Terminal;
+use stilt::layout::{vsplit, Constraint, Rect};
+use stilt::style::{Color, Modifier, Style};
+use stilt::text::{Line, Text};
+use stilt::widgets::anim::{LoadingDots, ProgressBar, Shimmer, Ticker, Wave};
+use stilt::widgets::{Block, BorderType, Paragraph, Spinner, StatusBar, Widget};
+use stilt::Terminal;
 use std::time::Instant;
 
-fn main() -> cctui::Result<()> {
+fn main() -> stilt::Result<()> {
     let mut term = Terminal::inline(37)?;
-    let rx = cctui::app::spawn_input_thread();
+    let rx = stilt::app::spawn_input_thread();
     let start = Instant::now();
     let spinner = Spinner::new("rendering, press q to quit…").style(Style::new().fg(Color::Rgb(215, 119, 87)));
 
     loop {
         if let Ok(ev) = rx.try_recv() {
             match ev {
-                cctui::Event::Key(k) if k.is_ctrl('c') => break,
-                cctui::Event::Key(k) if k.code == cctui::event::KeyCode::Char('q') => break,
-                cctui::Event::Key(k) if k.code == cctui::event::KeyCode::Esc => break,
+                stilt::Event::Key(k) if k.is_ctrl('c') => break,
+                stilt::Event::Key(k) if k.code == stilt::event::KeyCode::Char('q') => break,
+                stilt::Event::Key(k) if k.code == stilt::event::KeyCode::Esc => break,
                 _ => {}
             }
         }
@@ -43,7 +43,7 @@ fn main() -> cctui::Result<()> {
             );
 
             // 1. Four border types
-            let cols = cctui::layout::hsplit(
+            let cols = stilt::layout::hsplit(
                 rows[0],
                 &[Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1), Constraint::Fill(1)],
             );
@@ -82,7 +82,7 @@ fn main() -> cctui::Result<()> {
             Paragraph::new(styles).render(rows[2], frame.buffer);
 
             // 4. Animation showcase (all pure functions of time, driven by .at(elapsed))
-            Wave::new("✻ cctui animation showcase — color wave text").at(t).render(rows[3], frame.buffer);
+            Wave::new("✻ stilt animation showcase — color wave text").at(t).render(rows[3], frame.buffer);
             Shimmer::new("shimmer: a highlight band sweeping across loading placeholder text")
                 .at(t)
                 .render(Rect::new(rows[3].x, rows[3].y + 1, rows[3].width, 1), frame.buffer);
@@ -94,7 +94,7 @@ fn main() -> cctui::Result<()> {
             LoadingDots::new("Thinking")
                 .at(t)
                 .render(Rect::new(rows[3].x, rows[3].y + 3, 20, 1), frame.buffer);
-            Ticker::new("ticker: cctui — zero deps · diff rendering · inline mode · streaming markdown · CJK width alignment ✻")
+            Ticker::new("ticker: stilt — zero deps · diff rendering · inline mode · streaming markdown · CJK width alignment ✻")
                 .at(t)
                 .render(Rect::new(rows[3].x, rows[3].y + 4, rows[3].width, 1), frame.buffer);
 

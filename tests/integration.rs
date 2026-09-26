@@ -1,13 +1,13 @@
 //! Integration tests: end-to-end simulation (pure logic, no real terminal needed).
 
-use cctui::buffer::Buffer;
-use cctui::event::{KeyCode, KeyModifiers, KeyEvent};
-use cctui::layout::{vsplit, Constraint, Rect};
-use cctui::markdown;
-use cctui::text::Text;
-use cctui::theme::Theme;
-use cctui::widgets::{Editor, InputAction, Paragraph, Widget};
-use cctui::width::str_width;
+use stilt::buffer::Buffer;
+use stilt::event::{KeyCode, KeyModifiers, KeyEvent};
+use stilt::layout::{vsplit, Constraint, Rect};
+use stilt::markdown;
+use stilt::text::Text;
+use stilt::theme::Theme;
+use stilt::widgets::{Editor, InputAction, Paragraph, Widget};
+use stilt::width::str_width;
 
 /// Renders into a Buffer and collects all line texts.
 fn render_lines(w: u16, h: u16, f: impl FnOnce(Rect, &mut Buffer)) -> Vec<String> {
@@ -104,7 +104,7 @@ trait HistoryProbe {
 impl HistoryProbe for Editor {
     fn history_up_public(&mut self) -> bool {
         // When single-line and non-empty, Up should load history
-        use cctui::event::KeyEvent;
+        use stilt::event::KeyEvent;
         matches!(
             self.handle_key(KeyEvent::new(KeyCode::Up, KeyModifiers::NONE)),
             InputAction::Edited
@@ -122,7 +122,7 @@ fn full_frame_pipeline() {
     let mut editor = Editor::new()
         .with_completions(vec!["help".into(), "exit".into()])
         .with_placeholder("给 chat 发消息…");
-    for c in "你好 cctui".chars() {
+    for c in "你好 stilt".chars() {
         editor.handle_key(KeyEvent::char(c));
     }
 
@@ -130,13 +130,13 @@ fn full_frame_pipeline() {
     let user_md = "用户输入的一行中文";
 
     for frame in 0..3 {
-        let mut lines: Vec<cctui::text::Line> = Vec::new();
-        let user_mark = cctui::style::Style::new().fg(cctui::style::Color::Rgb(120, 180, 255));
+        let mut lines: Vec<stilt::text::Line> = Vec::new();
+        let user_mark = stilt::style::Style::new().fg(stilt::style::Color::Rgb(120, 180, 255));
         let t = markdown::render(msgs_md, &theme, width as usize);
         lines.extend(t.lines);
-        for row in cctui::text::wrap_line(&cctui::text::Line::raw(user_md), (width - 2) as usize) {
-            let mut l = cctui::text::Line::empty();
-            l.push_span(cctui::text::Span::styled("› ".to_string(), user_mark));
+        for row in stilt::text::wrap_line(&stilt::text::Line::raw(user_md), (width - 2) as usize) {
+            let mut l = stilt::text::Line::empty();
+            l.push_span(stilt::text::Span::styled("› ".to_string(), user_mark));
             l.spans.extend(row.spans.clone());
             lines.push(l);
         }
@@ -155,20 +155,20 @@ fn full_frame_pipeline() {
         // History
         for (i, line) in lines.iter().rev().take(rows[0].height as usize).enumerate() {
             let y = rows[0].bottom() - 1 - i as u16;
-            buf.set_line(0, y, &cctui::text::truncate_line(line, width as usize));
+            buf.set_line(0, y, &stilt::text::truncate_line(line, width as usize));
         }
         // Input box (alternating empty/non-empty between frames, simulating editing)
         if frame == 1 {
             editor.clear();
         }
         let cursor = editor.render_editor(rows[2], &mut buf);
-        let inner = cctui::widgets::Block::rounded().inner(rows[2]);
+        let inner = stilt::widgets::Block::rounded().inner(rows[2]);
         if let Some((cx, cy)) = cursor {
             assert!(cx >= inner.x && cx < inner.right(), "cursor column {} out of bounds", cx);
             assert!(cy >= inner.y && cy < inner.bottom(), "cursor row {} out of bounds", cy);
         }
         // Status bar
-        cctui::widgets::StatusBar::new(vec![cctui::text::Span::raw("status")])
+        stilt::widgets::StatusBar::new(vec![stilt::text::Span::raw("status")])
             .render(rows[3], &mut buf);
 
         // No overflow: the whole frame's content stays within the buffer width

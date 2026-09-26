@@ -1,4 +1,4 @@
-# cctui
+# stilt
 
 A **general-purpose Rust TUI widget library** — built entirely from scratch with **zero
 third-party dependencies** (std + hand-written FFI only). Component model in the spirit of
@@ -49,20 +49,20 @@ animations.
 
 ```toml
 [dependencies]
-cctui = "0.1"
+stilt = "0.1"
 ```
 
 ```rust
-use cctui::widgets::{List, ListState, Widget};
-use cctui::text::Line;
-use cctui::{Event, KeyCode, Terminal};
+use stilt::widgets::{List, ListState, Widget};
+use stilt::text::Line;
+use stilt::{Event, KeyCode, Terminal};
 use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
-fn main() -> cctui::Result<()> {
+fn main() -> stilt::Result<()> {
     let mut term = Terminal::inline(12)?;       // 12-row inline region at the bottom
     term.enable_mouse().enable_paste();
-    let rx = cctui::app::spawn_input_thread();  // background input thread
+    let rx = stilt::app::spawn_input_thread();  // background input thread
 
     let items = vec![Line::raw("apple"), Line::raw("banana"), Line::raw("cherry")];
     let mut state = ListState { offset: 0, selected: Some(0) };

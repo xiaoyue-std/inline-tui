@@ -1,6 +1,6 @@
-# cctui — Technical Design
+# stilt — Technical Design
 
-This document explains how cctui works internally: the architecture layers, the rendering
+This document explains how stilt works internally: the architecture layers, the rendering
 pipeline, the inline-mode algorithm, the width system, the VT input parser, the editor's
 undo design, and the testing strategy. For usage see the [README](../README.md); for
 contribution rules see [AGENT.md](../AGENT.md).
