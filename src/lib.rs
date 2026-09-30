@@ -1,4 +1,4 @@
-//! # stilt
+//! # inline-tui
 //!
 //! A general-purpose Rust TUI widget library: inline rendering, double-buffered
 //! diffing, full input events, ready-made widgets and animations — implemented
@@ -19,15 +19,15 @@
 //! See `examples/gallery.rs` for typical usage:
 //!
 //! ```no_run
-//! use stilt::widgets::{Paragraph, Widget};
-//! use stilt::{Event, KeyCode, KeyModifiers, Terminal};
+//! use inline_tui::widgets::{Paragraph, Widget};
+//! use inline_tui::{Event, KeyCode, KeyModifiers, Terminal};
 //! use std::sync::mpsc::RecvTimeoutError;
 //! use std::time::Duration;
 //!
-//! fn main() -> stilt::Result<()> {
+//! fn main() -> inline_tui::Result<()> {
 //!     let mut term = Terminal::inline(24)?;
 //!     term.enable_mouse().enable_paste();
-//!     let rx = stilt::app::spawn_input_thread();
+//!     let rx = inline_tui::app::spawn_input_thread();
 //!     loop {
 //!         match rx.recv_timeout(Duration::from_millis(80)) {
 //!             Ok(Event::Key(k))
@@ -40,7 +40,7 @@
 //!             Err(_) => break,
 //!         }
 //!         term.draw(24, |frame| {
-//!             Paragraph::new("hello stilt").render(frame.area, frame.buffer);
+//!             Paragraph::new("hello inline-tui").render(frame.area, frame.buffer);
 //!         })?;
 //!     }
 //!     Ok(())

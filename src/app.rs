@@ -14,7 +14,7 @@ use std::time::Duration;
 ///
 /// ```no_run
 /// use std::time::Duration;
-/// let rx = stilt::app::spawn_input_thread();
+/// let rx = inline_tui::app::spawn_input_thread();
 /// loop {
 ///     match rx.recv_timeout(Duration::from_millis(80)) {
 ///         Ok(ev) => { /* handle key/mouse/paste/resize */ }
@@ -25,8 +25,8 @@ use std::time::Duration;
 pub fn spawn_input_thread() -> Receiver<Event> {
     let (tx, rx) = mpsc::channel();
     let tx_size = tx.clone();
-    spawn_thread("stilt-input", move || input_loop(tx));
-    spawn_thread("stilt-size", move || size_loop(tx_size));
+    spawn_thread("inline-tui-input", move || input_loop(tx));
+    spawn_thread("inline-tui-size", move || size_loop(tx_size));
     rx
 }
 
@@ -34,7 +34,7 @@ fn spawn_thread<F: FnOnce() + Send + 'static>(name: &str, f: F) -> JoinHandle<()
     std::thread::Builder::new()
         .name(name.to_string())
         .spawn(f)
-        .expect("stilt: spawn thread failed")
+        .expect("inline-tui: spawn thread failed")
 }
 
 fn input_loop(tx: Sender<Event>) {

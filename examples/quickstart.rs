@@ -1,17 +1,17 @@
-//! quickstart: the smallest useful stilt app — a selectable, toggleable todo list.
+//! quickstart: the smallest useful inline-tui app — a selectable, toggleable todo list.
 //!
 //! Run: `cargo run --example quickstart`  (↑↓ move · Space toggle · q/Esc/Ctrl+C quit)
 
-use stilt::event::{Event, KeyCode};
-use stilt::layout::{vsplit, Constraint};
-use stilt::style::{Color, Modifier, Style};
-use stilt::text::Line;
-use stilt::widgets::{List, ListState, StatusBar, Widget};
-use stilt::Terminal;
+use inline_tui::event::{Event, KeyCode};
+use inline_tui::layout::{vsplit, Constraint};
+use inline_tui::style::{Color, Modifier, Style};
+use inline_tui::text::Line;
+use inline_tui::widgets::{List, ListState, StatusBar, Widget};
+use inline_tui::Terminal;
 use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
-fn main() -> stilt::Result<()> {
+fn main() -> inline_tui::Result<()> {
     // 1. Take over the terminal: raw mode + an inline region (bottom 10 rows,
     //    scrollback history above stays intact). The original terminal state is
     //    restored automatically on Drop — even when the app panics.
@@ -19,7 +19,7 @@ fn main() -> stilt::Result<()> {
 
     // 2. A background thread reads keys / mouse / paste and sends Events.
     //    recv_timeout on the receiver doubles as the animation tick.
-    let rx = stilt::app::spawn_input_thread();
+    let rx = inline_tui::app::spawn_input_thread();
 
     // 3. Your application state lives OUTSIDE the widgets (ratatui-style):
     //    widgets borrow it for rendering, you own every mutation.
@@ -53,7 +53,7 @@ fn main() -> stilt::Result<()> {
         }
 
         // 5. Render: paint every widget into the frame each iteration.
-        //    stilt diffs this frame against the previous one — only the changed
+        //    inline-tui diffs this frame against the previous one — only the changed
         //    cells are written to the terminal, so streaming updates never flicker.
         let accent = Style::new().fg(Color::Rgb(215, 119, 87)).add_modifier(Modifier::BOLD);
         term.draw(10, |frame| {

@@ -1,4 +1,4 @@
-# stilt
+# inline-tui
 
 A **general-purpose Rust TUI widget library** — built entirely from scratch with **zero
 third-party dependencies** (std + hand-written FFI only). Component model in the spirit of
@@ -47,22 +47,24 @@ animations.
 
 ## Quick start
 
+Not published to crates.io yet — use the git dependency directly:
+
 ```toml
 [dependencies]
-stilt = "0.1"
+inline-tui = { git = "https://github.com/xiaoyue-std/inline-tui" }
 ```
 
 ```rust
-use stilt::widgets::{List, ListState, Widget};
-use stilt::text::Line;
-use stilt::{Event, KeyCode, Terminal};
+use inline_tui::widgets::{List, ListState, Widget};
+use inline_tui::text::Line;
+use inline_tui::{Event, KeyCode, Terminal};
 use std::sync::mpsc::RecvTimeoutError;
 use std::time::Duration;
 
-fn main() -> stilt::Result<()> {
+fn main() -> inline_tui::Result<()> {
     let mut term = Terminal::inline(12)?;       // 12-row inline region at the bottom
     term.enable_mouse().enable_paste();
-    let rx = stilt::app::spawn_input_thread();  // background input thread
+    let rx = inline_tui::app::spawn_input_thread();  // background input thread
 
     let items = vec![Line::raw("apple"), Line::raw("banana"), Line::raw("cherry")];
     let mut state = ListState { offset: 0, selected: Some(0) };
