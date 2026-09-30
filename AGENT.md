@@ -11,6 +11,44 @@ product — `examples/chat.rs` is merely a composition demo. Signature features:
 rendering (the UI occupies the bottom rows of the terminal while scrollback stays intact)
 and double-buffered differential rendering, plus a built-in wcwidth system.
 
+## Project status (snapshot 2026-09, main @ `1cbf744`)
+
+**Phase**: feature-complete MVP of the library core. Not published to crates.io (owner
+decision — the project is not considered mature enough); consumed as a git dependency
+(`inline-tui = { git = "https://github.com/xiaoyue-std/inline-tui" }`). Repo:
+`github.com/xiaoyue-std/inline-tui`; crate name and repo name are both `inline-tui`.
+
+**Implemented and working** (builds clean, clippy 0 warnings):
+
+- Differential render core: double-buffered cell grid, incremental SGR, zero clear-screen
+- Inline (bottom-anchored) mode with height-change handling + fullscreen alternate-screen mode
+- Zero-dep platform backends: Windows Console API + POSIX termios (hand-written FFI),
+  `/dev/tty` fallback, Unix signal handlers restoring termios
+- Stateful VT input parser: keys/modifiers/mouse SGR/bracketed paste/focus/UTF-8,
+  resumable across chunk splits
+- 16 widgets: block/paragraph/viewport/list/table/tabs/menu/checkbox+radio/scrollbar/
+  sparkline/spinner/statusbar/collapsible/diff/editor
+- Editor extras: grouped undo/redo (Ctrl+Z/Y), input history with draft, slash-command
+  completion, wide-char cursor positioning
+- Content layer: streaming-friendly markdown renderer, 10-language syntax highlighter
+- Time-pure animation set (`anim.rs`), driven by `.at(elapsed)`
+- Examples: `quickstart` only (the single, minimal demo)
+
+**Deliberately removed by the owner (2026-09)** — do not resurrect unprompted:
+
+- The entire test suite (107 tests were green at removal time), `tools/pty_smoke.py`,
+  `.wsl-test.sh`, and the gallery/chat/sandbox/keyspector examples
+
+**Open items, priority order**:
+
+1. **No automated verification exists.** Any nontrivial change is only checked by build +
+   clippy + manually running `quickstart`. If the owner re-enables testing, follow
+   Testing conventions below.
+2. Editor: no selection/clipboard, no single-line mode
+3. Markdown: tables render as paragraphs; full re-parse per frame
+4. Resize is polled (300 ms), no SIGWINCH handler
+5. crates.io publish: deferred until the owner considers the project mature
+
 ## Hard rules (violations get reverted)
 
 1. **Zero third-party dependencies.** `[dependencies]` in Cargo.toml must stay empty. Need
@@ -33,29 +71,26 @@ Windows side (Git Bash; cargo is not on the default PATH):
 
 ```bash
 export PATH="$HOME/.cargo/bin:$PATH"
-cargo test                              # 107 tests must be green
+cargo build                              # library must compile
+cargo build --examples                   # quickstart example
 cargo clippy --all-targets              # 0 warnings is the bar
 cargo check --target x86_64-unknown-linux-gnu --all-targets   # required after touching sys/unix.rs
 cargo check --target aarch64-apple-darwin --all-targets       # same
-cargo run --example gallery             # widget tour (needs a real terminal)
+cargo run --example quickstart          # manual smoke test (needs a real terminal)
 ```
 
-Linux side (local WSL2: both **Ubuntu-26.04** and kali distros are verified; Rust is
-installed offline in each distro's `~/.rust-linux` — rustup direct downloads time out, so
-use the dist tarball downloaded on the Windows side):
+Historical note (setup context, scripts removed): runtime behavior was verified on WSL2
+(Ubuntu-26.04 + kali, Rust offline in `~/.rust-linux`) with a PTY smoke suite before the
+owner stripped the test tooling. The WSL Rust installs still exist if verification is
+ever reinstated.
 
-```bash
-MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-26.04 -- bash /mnt/d/Dev_Project/C/.wsl-test.sh     # full: sync → cargo test → PTY scenarios
-MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-26.04 -- bash /mnt/d/Dev_Project/C/.wsl-test.sh signal   # SIGTERM restore scenario only
-```
-
-**Gotchas**: Git Bash rewrites `/mnt/...` into Windows paths — always pass
+**Gotcha**: Git Bash rewrites `/mnt/...` into Windows paths — always pass
 `MSYS_NO_PATHCONV=1` when invoking wsl.exe. Multi-line inline shell scripts get mangled by
 quote layers; write complex logic to a script file and execute that instead.
 
-After touching rendering/input/platform code, run at minimum `cargo test` + `clippy` +
-`cargo check` for the relevant target; after touching `sys/unix.rs` or example interaction
-flows, also run `.wsl-test.sh`.
+There are **no tests**. After touching rendering/input/platform code, run at minimum
+`cargo build --examples` + `clippy` + `cargo check` for the relevant target, then
+manually run `quickstart` in a real terminal and exercise the affected interaction.
 
 ## Architecture map
 
@@ -170,24 +205,25 @@ Data flow: input thread → (VT parsing) → `Event` channel → main loop `recv
 - **Match ergonomics on key events**: after `match k.code { ... other => ... }` rebuild the
   event — `editor.handle_key(KeyEvent::new(other, k.modifiers))`.
 
-## Testing conventions
+## Testing conventions (guidance if tests are re-introduced)
 
-- Unit tests live in each module's `#[cfg(test)]`; widget tests render into an in-memory
-  `Buffer` and assert on row text/colors (see `widgets/table.rs::tests`).
-- Integration tests live in `tests/integration.rs` (including a full-frame pipeline sim).
-- Headless PTY acceptance: `tools/pty_smoke.py` (5 scenarios: sandbox / gallery / chat /
-  diff / signal). New user-visible interaction → add a scenario assertion.
+The test suite was removed at the owner's request. If testing is reinstated, follow the
+conventions that used to apply:
+
+- Unit tests in each module's `#[cfg(test)]`; widget tests render into an in-memory
+  `Buffer` and assert on row text/colors.
+- Headless PTY acceptance via a `tools/pty_smoke.py`-style driver: run examples under a
+  real pty, feed scripted keystrokes, assert on the ANSI output.
 - Test names and assertion messages in English.
-- **Keep CJK test fixtures Chinese**: strings in width/text/buffer/table/input tests that
-  exist to exercise wide-char behavior are feature data, not documentation — do not
-  translate them.
+- **Keep CJK test fixtures Chinese**: strings that exist to exercise wide-char behavior
+  are feature data, not documentation — do not translate them.
 
 ## Definition of done
 
 A change is done when and only when:
 
-1. `cargo test` is fully green (currently 107 tests)
-2. `cargo clippy --all-targets` reports 0 warnings
-3. For platform/render changes: both cross-compile targets pass `cargo check`; for Unix
-   path changes: `.wsl-test.sh` reports ALL PASS
-4. New user-visible behavior has test coverage, and README is updated when needed
+1. `cargo build --examples` succeeds and `cargo clippy --all-targets` reports 0 warnings
+2. For platform/render changes: both cross-compile targets pass `cargo check`
+3. The affected interaction was manually exercised via `cargo run --example quickstart`
+   (or a scratch example) in a real terminal
+4. README is updated when user-visible behavior changed
