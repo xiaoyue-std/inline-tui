@@ -24,7 +24,7 @@ rendering**.
 | **Data** | `Sparkline` (block-character bar chart), `DiffView` (colored unified diff), `Collapsible` panels |
 | **Content** | Markdown rendering (headings/lists/quotes/fenced code with borders; streaming-friendly), syntax highlighting for 10 languages |
 | **Animation** | `Wave`, `Shimmer`, `ProgressBar` (gradient / indeterminate), `LoadingDots`, `Typewriter`, `Ticker`, `pulse_color` — every animation is a pure function of time, driven by `.at(elapsed)`, fully deterministic to test |
-| **Styling** | `Color` (16/256/RGB), `Modifier` bitflags, `Style` (patch semantics), `Theme` |
+| **Styling** | `Color` (16/256/RGB), `Modifier` bitflags, `Style` (patch semantics), `Theme` (semantic roles; `Theme::with_accent(color)` derives a whole coherent color scheme from one accent) |
 
 ### Rendering core
 

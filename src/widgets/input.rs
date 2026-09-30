@@ -148,6 +148,11 @@ impl Editor {
         self.block = b;
     }
 
+    /// Replaces the selection style at runtime (e.g. when the theme changes).
+    pub fn set_selection_style(&mut self, st: Style) {
+        self.selection_style = st;
+    }
+
     pub fn placeholder_style(mut self, st: Style) -> Editor {
         self.placeholder_style = st;
         self
