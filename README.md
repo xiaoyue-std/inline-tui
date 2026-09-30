@@ -102,7 +102,6 @@ The component model is ratatui-like: interaction state lives in your app, and
 
 | Doc | Contents |
 |---|---|
-| [docs/DESIGN.md](docs/DESIGN.md) | Technical design: rendering pipeline, inline anchoring, width system, VT parser, undo architecture, testing strategy |
 | [AGENT.md](AGENT.md) | Hard rules, invariants, pitfalls and definition-of-done for AI coding agents |
 
 ## Architecture

@@ -4,6 +4,8 @@
 //!   (Home/End, Ctrl+A/E)
 //! - Editing: backspace/delete, Ctrl+K/U (delete to end/start of line),
 //!   Ctrl+W/Alt+Backspace (delete word), Alt+Enter (newline)
+//! - Selection: Shift+arrows/Home/End to select (rendered reversed); typing
+//!   replaces it; Backspace/Delete/Ctrl+W delete it; paste replaces it
 //! - Undo/redo: Ctrl+Z / Ctrl+Y (snapshot history; consecutive typing or
 //!   backspacing groups into a single undo step)
 //! - History: browse submitted history with ↑/↓ in single-line state (with draft saving)
@@ -14,7 +16,7 @@
 use crate::buffer::Buffer;
 use crate::event::{KeyCode, KeyModifiers, KeyEvent};
 use crate::layout::Rect;
-use crate::style::Style;
+use crate::style::{Modifier, Style};
 use crate::text::wrap_plain;
 use crate::widgets::menu::menu_height;
 use crate::widgets::{Block, Widget};
@@ -79,6 +81,10 @@ pub struct Editor {
     max_menu_visible: usize,
     /// Maximum number of logical lines the input box grows to.
     max_grow_lines: usize,
+    /// Selection anchor; the selected range spans anchor..cursor.
+    selection: Option<(usize, usize)>,
+    /// Style applied to selected characters.
+    selection_style: Style,
     /// Undo snapshots (most recent last), capped at `max_history`.
     undo_stack: Vec<UndoEntry>,
     redo_stack: Vec<UndoEntry>,
@@ -111,6 +117,8 @@ impl Editor {
             menu: None,
             max_menu_visible: 6,
             max_grow_lines: 5,
+            selection: None,
+            selection_style: Style::new().add_modifier(Modifier::REVERSED),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             max_history: 100,
@@ -159,6 +167,12 @@ impl Editor {
     pub fn with_max_history(mut self, n: usize) -> Editor {
         self.max_history = n.max(1);
         self.undo_stack.truncate(self.max_history);
+        self
+    }
+
+    /// Style applied to selected characters (default: reversed).
+    pub fn selection_style(mut self, st: Style) -> Editor {
+        self.selection_style = st;
         self
     }
 
@@ -231,6 +245,33 @@ impl Editor {
         !self.redo_stack.is_empty()
     }
 
+    // —— Selection (public API) ——
+
+    /// Whether a non-empty selection exists.
+    pub fn has_selection(&self) -> bool {
+        matches!(self.ordered_selection(), Some((s, e)) if s != e)
+    }
+
+    /// The ordered selection range: `((start line, start char), (end line, end char))`.
+    pub fn selection_range(&self) -> Option<((usize, usize), (usize, usize))> {
+        self.ordered_selection().filter(|(s, e)| s != e)
+    }
+
+    /// Clears the selection without touching the text.
+    pub fn clear_selection(&mut self) {
+        self.selection = None;
+    }
+
+    fn ordered_selection(&self) -> Option<((usize, usize), (usize, usize))> {
+        let anchor = self.selection?;
+        let c = self.cursor;
+        Some(if (anchor.0, anchor.1) <= (c.0, c.1) {
+            (anchor, c)
+        } else {
+            (c, anchor)
+        })
+    }
+
     fn snapshot(&self) -> UndoEntry {
         UndoEntry {
             lines: self.lines.clone(),
@@ -273,6 +314,28 @@ impl Editor {
         self.last_edit = None;
     }
 
+    /// Deletes the selected range (if any) and moves the cursor to its start.
+    /// Returns `true` when a non-empty selection was removed.
+    fn delete_selection(&mut self) -> bool {
+        let Some(((sl, sc), (el, ec))) = self.ordered_selection().filter(|(s, e)| s != e) else {
+            self.selection = None;
+            return false;
+        };
+        if sl == el {
+            let sb = byte_index_at(&self.lines[sl], sc);
+            let eb = byte_index_at(&self.lines[sl], ec);
+            self.lines[sl].replace_range(sb..eb, "");
+        } else {
+            let head = self.lines[sl][..byte_index_at(&self.lines[sl], sc)].to_string();
+            let tail = self.lines[el][byte_index_at(&self.lines[el], ec)..].to_string();
+            self.lines[sl] = format!("{head}{tail}");
+            self.lines.drain(sl + 1..=el);
+        }
+        self.cursor = (sl, sc);
+        self.selection = None;
+        true
+    }
+
     // —— Text operations (public API) ——
 
     /// Overwrites all text and moves the cursor to the end.
@@ -286,6 +349,7 @@ impl Editor {
         }
         let li = self.lines.len() - 1;
         self.cursor = (li, self.lines[li].chars().count());
+        self.selection = None;
         self.break_run();
         self.after_edit();
     }
@@ -300,15 +364,17 @@ impl Editor {
         self.scroll_row = 0;
         self.history_pos = None;
         self.menu = None;
+        self.selection = None;
         self.break_run();
         self.after_edit();
     }
 
     /// Inserts pasted text (`\r\n` normalized, newlines split into lines).
     ///
-    /// Recorded as a single undo step.
+    /// Replaces the selection when one exists. Recorded as a single undo step.
     pub fn handle_paste(&mut self, text: &str) {
         self.begin_edit(EditKind::Other);
+        self.delete_selection();
         for ch in text.chars() {
             match ch {
                 '\r' => {}
@@ -367,28 +433,49 @@ impl Editor {
                 if self.menu.is_some() {
                     self.menu_up();
                     InputAction::Edited
-                } else if self.lines.len() == 1 && self.history_up() {
+                } else if m.contains(KeyModifiers::SHIFT) {
+                    self.break_run();
+                    self.selection.get_or_insert(self.cursor);
+                    self.move_cursor_line(-1);
                     InputAction::Edited
                 } else {
                     self.break_run();
-                    self.move_cursor_line(-1);
-                    InputAction::Edited
+                    self.selection = None;
+                    if self.lines.len() == 1 && self.history_up() {
+                        InputAction::Edited
+                    } else {
+                        self.move_cursor_line(-1);
+                        InputAction::Edited
+                    }
                 }
             }
             KeyCode::Down => {
                 if self.menu.is_some() {
                     self.menu_down();
                     InputAction::Edited
-                } else if self.lines.len() == 1 && self.history_down() {
+                } else if m.contains(KeyModifiers::SHIFT) {
+                    self.break_run();
+                    self.selection.get_or_insert(self.cursor);
+                    self.move_cursor_line(1);
                     InputAction::Edited
                 } else {
                     self.break_run();
-                    self.move_cursor_line(1);
-                    InputAction::Edited
+                    self.selection = None;
+                    if self.lines.len() == 1 && self.history_down() {
+                        InputAction::Edited
+                    } else {
+                        self.move_cursor_line(1);
+                        InputAction::Edited
+                    }
                 }
             }
             KeyCode::Left => {
                 self.break_run();
+                if m.contains(KeyModifiers::SHIFT) {
+                    self.selection.get_or_insert(self.cursor);
+                } else {
+                    self.selection = None;
+                }
                 if m.intersects(KeyModifiers::CONTROL) || m == KeyModifiers::ALT {
                     self.word_left();
                 } else {
@@ -398,6 +485,11 @@ impl Editor {
             }
             KeyCode::Right => {
                 self.break_run();
+                if m.contains(KeyModifiers::SHIFT) {
+                    self.selection.get_or_insert(self.cursor);
+                } else {
+                    self.selection = None;
+                }
                 if m.intersects(KeyModifiers::CONTROL) || m == KeyModifiers::ALT {
                     self.word_right();
                 } else {
@@ -407,11 +499,21 @@ impl Editor {
             }
             KeyCode::Home => {
                 self.break_run();
+                if m.contains(KeyModifiers::SHIFT) {
+                    self.selection.get_or_insert(self.cursor);
+                } else {
+                    self.selection = None;
+                }
                 self.cursor.1 = 0;
                 InputAction::Edited
             }
             KeyCode::End => {
                 self.break_run();
+                if m.contains(KeyModifiers::SHIFT) {
+                    self.selection.get_or_insert(self.cursor);
+                } else {
+                    self.selection = None;
+                }
                 self.cursor.1 = self.lines[self.cursor.0].chars().count();
                 InputAction::Edited
             }
@@ -423,15 +525,25 @@ impl Editor {
                 InputAction::Edited
             }
             KeyCode::Backspace if m.is_empty() => {
-                self.begin_edit(EditKind::DeleteBack);
-                self.backspace();
-                self.end_edit(EditKind::DeleteBack);
+                self.break_run();
+                if self.has_selection() {
+                    self.begin_edit(EditKind::Other);
+                    self.delete_selection();
+                    self.end_edit(EditKind::Other);
+                } else {
+                    self.begin_edit(EditKind::DeleteBack);
+                    self.backspace();
+                    self.end_edit(EditKind::DeleteBack);
+                }
                 self.after_edit();
                 InputAction::Edited
             }
             KeyCode::Delete if m.is_empty() => {
+                self.break_run();
                 self.begin_edit(EditKind::Other);
-                self.delete_forward();
+                if !self.delete_selection() {
+                    self.delete_forward();
+                }
                 self.end_edit(EditKind::Other);
                 self.after_edit();
                 InputAction::Edited
@@ -481,8 +593,11 @@ impl Editor {
                     InputAction::Edited
                 }
                 'w' => {
+                    self.break_run();
                     self.begin_edit(EditKind::Other);
-                    self.delete_word_back();
+                    if !self.delete_selection() {
+                        self.delete_word_back();
+                    }
                     self.end_edit(EditKind::Other);
                     self.after_edit();
                     InputAction::Edited
@@ -503,9 +618,18 @@ impl Editor {
                 _ => InputAction::None,
             },
             KeyCode::Char(c) if m.is_empty() || m == KeyModifiers::SHIFT => {
-                self.begin_edit(EditKind::InsertChar);
-                self.insert_char(c);
-                self.end_edit(EditKind::InsertChar);
+                self.break_run();
+                if self.has_selection() {
+                    // Typing replaces the selection (one undo step for the replace).
+                    self.begin_edit(EditKind::Other);
+                    self.delete_selection();
+                    self.insert_char(c);
+                    self.end_edit(EditKind::Other);
+                } else {
+                    self.begin_edit(EditKind::InsertChar);
+                    self.insert_char(c);
+                    self.end_edit(EditKind::InsertChar);
+                }
                 self.after_edit();
                 InputAction::Edited
             }
@@ -564,6 +688,7 @@ impl Editor {
         }
 
         let empty = self.is_empty();
+        let sel = self.ordered_selection().filter(|(s, e)| s != e);
         for (i, (seg, li, st)) in rows.iter().enumerate().skip(self.scroll_row).take(vis) {
             let y = inner.y + (i - self.scroll_row) as u16;
             if empty && *li == 0 && *st == 0 && i == 0 {
@@ -571,7 +696,33 @@ impl Editor {
                     buf.set_string(inner.x, y, &self.placeholder, self.placeholder_style);
                 }
             } else {
-                buf.set_string(inner.x, y, seg, self.text_style);
+                // Render the row as styled runs: selected chars get selection_style.
+                let mut line = crate::text::Line::empty();
+                let mut run = String::new();
+                let mut run_sel = false;
+                let mut run_started = false;
+                for (k, ch) in seg.chars().enumerate() {
+                    let ci = *st + k;
+                    let in_sel = sel
+                        .map(|((sl, sc), (el, ec))| {
+                            (li > &sl || (li == &sl && ci >= sc))
+                                && (li < &el || (li == &el && ci < ec))
+                        })
+                        .unwrap_or(false);
+                    if run_started && in_sel != run_sel {
+                        let st_run = if run_sel { self.selection_style } else { self.text_style };
+                        line.spans
+                            .push(crate::text::Span::styled(std::mem::take(&mut run), st_run));
+                    }
+                    run_started = true;
+                    run_sel = in_sel;
+                    run.push(ch);
+                }
+                if !run.is_empty() {
+                    let st_run = if run_sel { self.selection_style } else { self.text_style };
+                    line.spans.push(crate::text::Span::styled(run, st_run));
+                }
+                buf.set_line(inner.x, y, &line);
             }
         }
 
