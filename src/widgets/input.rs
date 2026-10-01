@@ -85,6 +85,9 @@ pub struct Editor {
     selection: Option<(usize, usize)>,
     /// Style applied to selected characters.
     selection_style: Style,
+    /// Single-line mode: Enter/Alt+Enter submit, newlines from paste become
+    /// spaces, multiline `set_text` input is squashed.
+    single_line: bool,
     /// Undo snapshots (most recent last), capped at `max_history`.
     undo_stack: Vec<UndoEntry>,
     redo_stack: Vec<UndoEntry>,
@@ -119,6 +122,7 @@ impl Editor {
             max_grow_lines: 5,
             selection: None,
             selection_style: Style::new().add_modifier(Modifier::REVERSED),
+            single_line: false,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             max_history: 100,
@@ -179,6 +183,17 @@ impl Editor {
     pub fn selection_style(mut self, st: Style) -> Editor {
         self.selection_style = st;
         self
+    }
+
+    /// Enables single-line mode: Enter/Alt+Enter submit, pasted newlines become
+    /// spaces, and multiline text set via [`Editor::set_text`] is squashed.
+    pub fn single_line(mut self, on: bool) -> Editor {
+        self.single_line = on;
+        self
+    }
+
+    pub fn set_single_line(&mut self, on: bool) {
+        self.single_line = on;
     }
 
     // —— State queries ——
@@ -348,6 +363,13 @@ impl Editor {
     /// Not recorded in undo history (used for history navigation and
     /// programmatic setup); it only breaks the current undo run.
     pub fn set_text(&mut self, s: &str) {
+        let squashed;
+        let s = if self.single_line {
+            squashed = s.replace(['\r', '\n'], " ");
+            squashed.as_str()
+        } else {
+            s
+        };
         self.lines = s.split('\n').map(str::to_string).collect();
         if self.lines.is_empty() {
             self.lines.push(String::new());
@@ -383,7 +405,13 @@ impl Editor {
         for ch in text.chars() {
             match ch {
                 '\r' => {}
-                '\n' => self.insert_newline(),
+                '\n' => {
+                    if self.single_line {
+                        self.insert_char(' ');
+                    } else {
+                        self.insert_newline();
+                    }
+                }
                 '\t' => {
                     self.insert_char(' ');
                     self.insert_char(' ');
@@ -403,22 +431,17 @@ impl Editor {
     pub fn handle_key(&mut self, key: KeyEvent) -> InputAction {
         let m = key.modifiers;
         match key.code {
-            KeyCode::Enter if m.is_empty() => {
-                if self.menu.is_some() {
-                    self.accept_menu();
-                    return InputAction::Edited;
-                }
-                let t = self.text();
-                self.push_history(&t);
-                self.clear();
-                InputAction::Submitted(t)
-            }
+            KeyCode::Enter if m.is_empty() => self.submit(),
             KeyCode::Enter if m == KeyModifiers::ALT => {
-                self.begin_edit(EditKind::Other);
-                self.insert_newline();
-                self.end_edit(EditKind::Other);
-                self.after_edit();
-                InputAction::Edited
+                if self.single_line {
+                    self.submit()
+                } else {
+                    self.begin_edit(EditKind::Other);
+                    self.insert_newline();
+                    self.end_edit(EditKind::Other);
+                    self.after_edit();
+                    InputAction::Edited
+                }
             }
             KeyCode::Tab if self.menu.is_some() => {
                 self.begin_edit(EditKind::Other);
@@ -642,6 +665,22 @@ impl Editor {
         }
     }
 
+    /// Handles Enter: accepts an open completion menu, otherwise submits the
+    /// text (pushes it to history and clears the input).
+    fn submit(&mut self) -> InputAction {
+        if self.menu.is_some() {
+            self.begin_edit(EditKind::Other);
+            self.accept_menu();
+            self.end_edit(EditKind::Other);
+            self.after_edit();
+            return InputAction::Edited;
+        }
+        let t = self.text();
+        self.push_history(&t);
+        self.clear();
+        InputAction::Submitted(t)
+    }
+
     // —— Rendering ——
 
     /// Renders the editor and returns the screen coordinates where the cursor should be
@@ -758,6 +797,9 @@ impl Editor {
     }
 
     fn insert_newline(&mut self) {
+        if self.single_line {
+            return; // suppressed in single-line mode
+        }
         let (li, ci) = self.cursor;
         let byte = byte_index_at(&self.lines[li], ci);
         let tail = self.lines[li].split_off(byte);

@@ -18,9 +18,9 @@ rendering**.
 | Category | Components |
 |---|---|
 | **Layout** | `Rect`, constraint-based `vsplit`/`hsplit` (Length / Min / Max / Percentage / Fill) |
-| **Basics** | `Block` borders (Plain/Rounded/Thick/Double + titles), `Paragraph` with word wrap, `Viewport` (follow-bottom scrolling), `Scrollbar` (vertical/horizontal), `Spinner`, `StatusBar` |
+| **Basics** | `Block` borders (Plain/Rounded/Thick/Double + titles), `Paragraph` with word wrap, `Viewport` (follow-bottom scrolling), `Scrollbar` (vertical/horizontal), `Spinner`, `Gauge` (centered-label percent bar), `StatusBar` |
 | **Collections** | `List` (selection + auto-follow), `Table` (constraint column widths + row selection), `Tabs`, popup `Menu` |
-| **Forms** | `Checkbox`, `RadioGroup`, `Editor` — a multi-line input with word-wise cursor motion, Ctrl shortcuts, undo/redo (Ctrl+Z/Y, grouped typing), input history, and slash-command completion |
+| **Forms** | `Checkbox`, `RadioGroup`, `Editor` — a multi-line input with word-wise cursor motion, Ctrl shortcuts, undo/redo (Ctrl+Z/Y, grouped typing), input history, slash-command completion, and a single-line mode (Enter submits, pasted newlines become spaces) |
 | **Data** | `Sparkline` (block-character bar chart), `DiffView` (colored unified diff), `Collapsible` panels |
 | **Content** | Markdown rendering (headings/lists/quotes/GFM tables with alignment/fenced code with borders; streaming-friendly), syntax highlighting for 10 languages |
 | **Animation** | `Wave`, `Shimmer`, `ProgressBar` (gradient / indeterminate), `LoadingDots`, `Typewriter`, `Ticker`, `pulse_color` — every animation is a pure function of time, driven by `.at(elapsed)`, fully deterministic to test |
@@ -97,6 +97,9 @@ The component model is ratatui-like: interaction state lives in your app, and
 | Command | What it shows |
 |---|---|
 | `cargo run --example quickstart` | The smallest useful app: inline region, event loop, `List` + `StatusBar` |
+| `cargo run --example selection` | Editor selection: Shift+arrows select, reversed rendering, replace/delete |
+| `cargo run --example theme` | `Theme::with_accent`: press 1-5 to recolor the whole UI live |
+| `cargo run --example input_gauge` | Single-line input + `Gauge` tracking the input length |
 
 ## Documentation
 
@@ -152,7 +155,7 @@ runtime behavior has been verified end-to-end under WSL2 (Ubuntu 26.04, kali).
 - No nested bold-italic beyond `***x***`
 - Editor history/completion is in-memory only, no persistence
 - Markdown is re-parsed fully each frame (fine at demo scale)
-- Not yet: single-line `Input`, `Gauge`, `Canvas`, image protocols (sixel/kitty)
+- Not yet: `Canvas`, image protocols (sixel/kitty)
 
 See [AGENT.md](AGENT.md) for AI coding-agent guidelines.
 
