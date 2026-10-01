@@ -22,7 +22,7 @@ rendering**.
 | **Collections** | `List` (selection + auto-follow), `Table` (constraint column widths + row selection), `Tabs`, popup `Menu` |
 | **Forms** | `Checkbox`, `RadioGroup`, `Editor` — a multi-line input with word-wise cursor motion, Ctrl shortcuts, undo/redo (Ctrl+Z/Y, grouped typing), input history, and slash-command completion |
 | **Data** | `Sparkline` (block-character bar chart), `DiffView` (colored unified diff), `Collapsible` panels |
-| **Content** | Markdown rendering (headings/lists/quotes/fenced code with borders; streaming-friendly), syntax highlighting for 10 languages |
+| **Content** | Markdown rendering (headings/lists/quotes/GFM tables with alignment/fenced code with borders; streaming-friendly), syntax highlighting for 10 languages |
 | **Animation** | `Wave`, `Shimmer`, `ProgressBar` (gradient / indeterminate), `LoadingDots`, `Typewriter`, `Ticker`, `pulse_color` — every animation is a pure function of time, driven by `.at(elapsed)`, fully deterministic to test |
 | **Styling** | `Color` (16/256/RGB), `Modifier` bitflags, `Style` (patch semantics), `Theme` (semantic roles; `Theme::with_accent(color)` derives a whole coherent color scheme from one accent) |
 
@@ -149,7 +149,7 @@ runtime behavior has been verified end-to-end under WSL2 (Ubuntu 26.04, kali).
 
 ## Known limits (honest roadmap)
 
-- Markdown tables render as plain paragraphs; no nested bold-italic inline parsing
+- No nested bold-italic beyond `***x***`
 - Editor history/completion is in-memory only, no persistence
 - Markdown is re-parsed fully each frame (fine at demo scale)
 - Not yet: single-line `Input`, `Gauge`, `Canvas`, image protocols (sixel/kitty)

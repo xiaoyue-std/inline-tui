@@ -2,8 +2,10 @@
 //!
 //! Supports block-level: headings (#~###), fenced code blocks (with language
 //! highlighting and rounded borders), unordered/ordered lists, quotes,
-//! horizontal rules, paragraphs; inline: **bold**, *italic*, ~~strikethrough~~,
-//! `inline code`, [links](url), `\` escapes.
+//! horizontal rules, tables (with per-column alignment and inline styles in
+//! cells), paragraphs; inline: **bold**, *italic*, ***bold-italic***,
+//! ~~strikethrough~~, `inline code`, [links](url), `\` escapes (including
+//! `\|` inside table cells).
 //!
 //! Streaming friendly: unclosed code fences are rendered as code blocks, and the
 //! accumulated text is fully re-parsed every frame.
@@ -15,6 +17,24 @@ use crate::theme::Theme;
 use crate::width::str_width;
 
 /// Renders markdown source text as rich text. `width` is the available display width.
+///
+/// # Tables
+///
+/// GFM-style tables (header row + `|---|` separator) render as a box-drawing
+/// grid with per-column alignment (`:---:` center, `---:` right):
+///
+/// ```
+/// use inline_tui::theme::Theme;
+/// let theme = Theme::default();
+/// let t = inline_tui::markdown::render("| a | b |\n|---|---|\n| 1 | 2 |", &theme, 40);
+/// let joined: String = t
+///     .lines
+///     .iter()
+///     .flat_map(|l| l.spans.iter().map(|s| s.content.clone()))
+///     .collect();
+/// assert!(joined.contains('┼'));
+/// assert!(joined.contains('│'));
+/// ```
 pub fn render(src: &str, theme: &Theme, width: usize) -> Text {
     let width = width.max(4);
     let mut lines: Vec<Line> = Vec::new();
@@ -145,12 +165,190 @@ pub fn render(src: &str, theme: &Theme, width: usize) -> Text {
             }
         }
 
+        // Table (header row followed by an alignment separator)
+        if trimmed.starts_with('|')
+            && i + 1 < src_lines.len()
+            && is_table_separator(src_lines[i + 1])
+        {
+            flush_para(&mut para, &mut lines);
+            let header = split_table_row(trimmed);
+            let aligns = parse_aligns(src_lines[i + 1], header.len());
+            i += 2;
+            let mut body = Vec::new();
+            while i < src_lines.len() && src_lines[i].trim_start().starts_with('|') {
+                body.push(split_table_row(src_lines[i].trim_start()));
+                i += 1;
+            }
+            push_table(&header, &aligns, &body, theme, width, &mut lines);
+            continue;
+        }
+
         para.push(raw.trim_start());
         i += 1;
     }
     flush_para(&mut para, &mut lines);
 
     Text::from_lines(lines)
+}
+
+/// Splits a table row into cells on unescaped `|` pipes (`\|` stays literal).
+fn split_table_row(line: &str) -> Vec<String> {
+    let s = line.trim();
+    let s = s.strip_prefix('|').unwrap_or(s);
+    let s = s.strip_suffix('|').unwrap_or(s);
+    let mut cells: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    let mut escaped = false;
+    for c in s.chars() {
+        if escaped {
+            if c != '|' {
+                cur.push('\\');
+            }
+            cur.push(c);
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == '|' {
+            cells.push(cur.trim().to_string());
+            cur.clear();
+        } else {
+            cur.push(c);
+        }
+    }
+    if escaped {
+        cur.push('\\');
+    }
+    cells.push(cur.trim().to_string());
+    cells
+}
+
+/// True when the line is a table alignment separator like `|---|:---:|--:|`.
+fn is_table_separator(line: &str) -> bool {
+    let s = line.trim();
+    if !s.contains('|') {
+        return false;
+    }
+    let cells = split_table_row(s);
+    !cells.is_empty()
+        && cells.iter().all(|c| {
+            let c = c.trim().trim_matches(':');
+            !c.is_empty() && c.chars().all(|ch| ch == '-')
+        })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Align {
+    Left,
+    Center,
+    Right,
+}
+
+fn parse_aligns(sep: &str, cols: usize) -> Vec<Align> {
+    let mut v: Vec<Align> = split_table_row(sep)
+        .into_iter()
+        .map(|c| match (c.trim().starts_with(':'), c.trim().ends_with(':')) {
+            (true, true) => Align::Center,
+            (false, true) => Align::Right,
+            _ => Align::Left,
+        })
+        .collect();
+    v.resize(cols, Align::Left);
+    v
+}
+
+/// Renders a table as a box-drawing grid: column widths fit the widest cell,
+/// shrunk proportionally when the table exceeds `width`; cells keep their
+/// inline styles and honor the per-column alignment.
+fn push_table(
+    header: &[String],
+    aligns: &[Align],
+    body: &[Vec<String>],
+    theme: &Theme,
+    width: usize,
+    lines: &mut Vec<Line>,
+) {
+    let n = header.len();
+    if n == 0 {
+        return;
+    }
+    // Per column: "│ " + content + " " ; plus the closing "│".
+    let avail = width.saturating_sub(n * 3 + 1).max(n);
+
+    let parse_cells = |cells: &[String]| -> Vec<Line> {
+        (0..n)
+            .map(|c| inline(cells.get(c).map(String::as_str).unwrap_or(""), theme.text, theme))
+            .collect()
+    };
+    let mut rows: Vec<Vec<Line>> = vec![parse_cells(header)];
+    for r in body {
+        rows.push(parse_cells(r));
+    }
+
+    let mut widths: Vec<usize> = vec![1; n];
+    for row in &rows {
+        for (c, cell) in row.iter().enumerate() {
+            widths[c] = widths[c].max(cell.width());
+        }
+    }
+    // Shrink the widest columns until the table fits.
+    loop {
+        let total: usize = widths.iter().sum();
+        if total <= avail {
+            break;
+        }
+        let Some(max_i) = (0..n).max_by_key(|&i| widths[i]) else {
+            break;
+        };
+        if widths[max_i] <= 1 {
+            break;
+        }
+        widths[max_i] -= 1;
+    }
+
+    let border = |l: char, m: char, r: char| -> Line {
+        let mut s = String::new();
+        s.push(l);
+        for (i, w) in widths.iter().enumerate() {
+            if i > 0 {
+                s.push(m);
+            }
+            s.push_str(&"─".repeat(w + 2));
+        }
+        s.push(r);
+        Line::styled(s, theme.hr)
+    };
+
+    lines.push(border('┌', '┬', '┐'));
+    for (ri, row) in rows.iter().enumerate() {
+        if ri == 1 {
+            lines.push(border('├', '┼', '┤'));
+        }
+        let mut l = Line::empty();
+        l.push_span(Span::styled("│", theme.hr));
+        for (c, cell) in row.iter().enumerate() {
+            let w = widths[c];
+            let content = truncate_line(cell, w);
+            let pad = w.saturating_sub(content.width());
+            let (left, right) = match aligns.get(c).copied().unwrap_or(Align::Left) {
+                Align::Left => (0, pad),
+                Align::Center => (pad / 2, pad - pad / 2),
+                Align::Right => (pad, 0),
+            };
+            // one space of cell padding on each side, plus alignment padding
+            let left_total = 1 + left;
+            let right_total = right + 1;
+            if left_total > 0 {
+                l.spans.push(Span::raw(" ".repeat(left_total)));
+            }
+            l.spans.extend(content.spans.clone());
+            if right_total > 0 {
+                l.spans.push(Span::raw(" ".repeat(right_total)));
+            }
+        }
+        l.push_span(Span::styled("│", theme.hr));
+        lines.push(l);
+    }
+    lines.push(border('└', '┴', '┘'));
 }
 
 fn push_heading(text: &str, st: Style, theme: &Theme, width: usize, lines: &mut Vec<Line>) {
@@ -258,9 +456,20 @@ fn parse_inline(src: &str, base: Style, theme: &Theme) -> Vec<Span> {
         // Escape
         if chars[i] == '\\' && i + 1 < chars.len() {
             let next = chars[i + 1];
-            if "*_`~[]\\".contains(next) {
+            if "*_`~[]\\|".contains(next) {
                 plain.push(next);
                 i += 2;
+                continue;
+            }
+        }
+
+        // Bold+italic ***x***
+        if rest.starts_with("***") {
+            if let Some(end) = find_from(&chars, i + 3, "***") {
+                flush!();
+                let inner: String = chars[i + 3..end].iter().collect();
+                spans.extend(parse_inline(&inner, base.patch(theme.bold).patch(theme.italic), theme));
+                i = end + 3;
                 continue;
             }
         }

@@ -27,7 +27,7 @@ const THEMES: [(&str, Color); 5] = [
     ("5 rose", Color::Rgb(235, 130, 180)),
 ];
 
-const SAMPLE: &str = "## Live recolor\n\nPress `1-5` and every **accent** role re-derives:\n\n- spinner, bullets, borders\n- inline code, quote bars, selection\n\n> one accent color in — a whole theme out";
+const SAMPLE: &str = "## Live recolor\n\nPress `1-5` and every **accent** role re-derives:\n\n- spinner, bullets, borders\n- inline code, quote bars, selection\n\n| role | derived from |\n|---|---:|\n| borders, bullets | accent |\n| inline code | accent, lightened |\n\n> one accent color in — a whole theme out";
 
 fn main() -> inline_tui::Result<()> {
     let mut term = Terminal::inline(22)?;
