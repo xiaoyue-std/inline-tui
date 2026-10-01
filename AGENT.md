@@ -26,13 +26,15 @@ decision — the project is not considered mature enough); consumed as a git dep
   `/dev/tty` fallback, Unix signal handlers restoring termios
 - Stateful VT input parser: keys/modifiers/mouse SGR/bracketed paste/focus/UTF-8,
   resumable across chunk splits
-- 16 widgets: block/paragraph/viewport/list/table/tabs/menu/checkbox+radio/scrollbar/
-  sparkline/spinner/statusbar/collapsible/diff/editor
-- Editor extras: grouped undo/redo (Ctrl+Z/Y), input history with draft, slash-command
-  completion, wide-char cursor positioning
-- Content layer: streaming-friendly markdown renderer, 10-language syntax highlighter
+- 18 widgets: block/paragraph/viewport/list/table/tabs/menu/checkbox+radio/scrollbar/
+  sparkline/spinner/gauge/statusbar/collapsible/diff/canvas/editor
+- Editor extras: grouped undo/redo (Ctrl+Z/Y), selection (Shift+arrows, replace/delete),
+  input history with draft, slash-command completion, single-line mode, wide-char cursor
+- Content layer: streaming-friendly markdown renderer (incl. GFM tables with alignment,
+  `***bold-italic***`), 10-language syntax highlighter, kitty image protocol passthrough
+  (`graphics`, PNG only — no in-library image decoding)
 - Time-pure animation set (`anim.rs`), driven by `.at(elapsed)`
-- Examples: `quickstart` only (the single, minimal demo)
+- Examples: `quickstart`, `selection`, `theme`, `input_gauge`, `canvas`
 
 **Deliberately removed by the owner (2026-09)** — do not resurrect unprompted:
 
@@ -42,10 +44,13 @@ decision — the project is not considered mature enough); consumed as a git dep
 **Open items, priority order**:
 
 1. **No automated verification exists.** Any nontrivial change is only checked by build +
-   clippy + manually running `quickstart`. If the owner re-enables testing, follow
+   clippy + manually running an example. When a verification is needed anyway, drive the
+   example under a real pty (see the scratch `target/_*_check.py` drivers for the
+   pattern: scripted keystrokes, resize-forced full repaints before text-level
+   assertions, reap-retry after pty EIO). If the owner re-enables testing, follow
    Testing conventions below.
-2. Editor: no selection/clipboard, no single-line mode
-3. Markdown: tables render as paragraphs; full re-parse per frame
+2. Editor: no internal clipboard (copy/cut)
+3. Markdown: full re-parse per frame (deliberate at current scale)
 4. Resize is polled (300 ms), no SIGWINCH handler
 5. crates.io publish: deferred until the owner considers the project mature
 

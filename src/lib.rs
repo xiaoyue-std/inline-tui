@@ -51,6 +51,7 @@ pub mod ansi;
 pub mod app;
 pub mod buffer;
 pub mod event;
+pub mod graphics;
 pub mod input;
 pub mod layout;
 pub mod markdown;

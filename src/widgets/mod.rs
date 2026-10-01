@@ -2,6 +2,7 @@
 
 pub mod anim;
 pub mod block;
+pub mod canvas;
 pub mod checkbox;
 pub mod collapsible;
 pub mod diff;
@@ -22,6 +23,7 @@ pub use anim::{
     lerp_rgb, pulse_color, wave_spans, LoadingDots, ProgressBar, Shimmer, Ticker, Typewriter, Wave,
 };
 pub use block::{Block, BorderType, Borders};
+pub use canvas::Canvas;
 pub use checkbox::{Checkbox, RadioGroup};
 pub use collapsible::Collapsible;
 pub use diff::{diff_lines, DiffView};
